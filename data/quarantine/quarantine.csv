@@ -1,0 +1,7 @@
+id,timestamp,label,confidence,moved,text
+99950b0f7f89,2026-08-08T20:10:09.599931,spam,,,You won!
+3579fe7d9600,2026-08-11T01:24:41.241124,spam,,,WINNER!! You have been specially selected to receive a $900 prize reward! To claim call 09061701461 now.
+7da0c93fc210,2026-08-11T01:27:17.246837,spam,,,URGENT! Your mobile number has won a FREE entry into our weekly draw. Text WIN to 80086 to claim your cash prize now.
+b924e4ce7e95,2026-08-11T01:34:13.358760,spam,,,WINNER!! You have been specially selected to receive a $900 prize reward! To claim call 09061701461 now. Claim code KL341. Valid 12 hours only.
+4bb5f5846293,2026-08-11T01:34:22.248264,spam,,,"URGENT! Your mobile number has won a FREE entry into our £1000 weekly draw. Text WIN to 80086 to claim your free ringtones and cash prize now. T&C apply, 18+ only."
+1133ddd549f6,2026-08-11T01:43:07,spam,1.0000,yes,"WINNER!! Claim your free prize now, call 09061701461"
