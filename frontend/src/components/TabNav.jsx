@@ -1,10 +1,25 @@
-import { ChartIcon, InboxIcon, ScanIcon, ShieldSmallIcon } from './icons/StatusIcons.jsx'
+/**
+ * Primary navigation.
+ *
+ * Analyzer and System Status are the two views this phase specified. The
+ * mailbox views (Quarantine, Inbox, Overview) are retained because they are
+ * backed by live endpoints (/messages, /stats) and still work; removing them
+ * would delete working functionality that was not asked to be removed.
+ */
+import {
+  ChartIcon,
+  InboxIcon,
+  ScanIcon,
+  ServerIcon,
+  ShieldSmallIcon,
+} from './icons/StatusIcons.jsx'
 
 export const TABS = [
-  { id: 'classifier', label: 'Classifier', Icon: ScanIcon },
-  { id: 'overview', label: 'Overview', Icon: ChartIcon },
+  { id: 'analyzer', label: 'Analyzer', Icon: ScanIcon },
   { id: 'quarantine', label: 'Quarantine', Icon: ShieldSmallIcon },
   { id: 'inbox', label: 'Inbox', Icon: InboxIcon },
+  { id: 'overview', label: 'Overview', Icon: ChartIcon },
+  { id: 'status', label: 'System Status', Icon: ServerIcon },
 ]
 
 export default function TabNav({ active, onChange, counts }) {

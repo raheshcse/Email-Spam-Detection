@@ -1,0 +1,137 @@
+==========================================================================
+PHISHING DATASET - PREPROCESSING REPORT
+==========================================================================
+Generated      : 2026-09-19T10:28:24
+Input          : data/raw/phishing_combined.csv  (not modified)
+Output         : data/processed/phishing_cleaned.csv
+Script         : src/data/preprocess_phishing.py
+Encoding tool  : ftfy 6.3.1
+
+--------------------------------------------------------------------------
+1. RECORD COUNTS
+--------------------------------------------------------------------------
+Original number of records        :   70,000
+Records removed (total)           :       26
+  missing values removed          :        0
+  empty after cleaning            :        0
+  too short after cleaning (<5 words) :   0
+  duplicates removed (total)      :       26
+    exact duplicates              :        7
+    near duplicates (first 200 chars) :  19
+Final number of records           :   69,974
+Retention rate                    :   99.96%
+
+--------------------------------------------------------------------------
+2. CLASS DISTRIBUTION
+--------------------------------------------------------------------------
+Before preprocessing:
+  0 = Legitimate     35,000  (50.00%)
+  1 = Phishing       35,000  (50.00%)
+
+After preprocessing:
+  0 = Legitimate     34,994  (50.01%)
+  1 = Phishing       34,980  (49.99%)
+
+Legitimate count : 34,994
+Phishing count   : 34,980
+Label values present : [0, 1] (validated against [0, 1])
+
+--------------------------------------------------------------------------
+3. DATA QUALITY CHECKS ON THE INPUT
+--------------------------------------------------------------------------
+Columns found              : ['text', 'label']
+Missing text values        : 0
+Missing label values       : 0
+Empty / whitespace emails  : 0
+Duplicate emails on input  : 0
+Label values on input      : [0, 1]
+
+--------------------------------------------------------------------------
+4. TEXT LENGTH STATISTICS
+--------------------------------------------------------------------------
+                              BEFORE         AFTER
+Minimum (characters)              20            20
+Maximum (characters)       1,025,043     1,023,604
+Mean (characters)            1,702.4       1,657.5
+Median (characters)            750.0         733.0
+
+Minimum (words)                    5             5
+Maximum (words)               46,579        46,579
+Mean (words)                   285.0         284.7
+Median (words)                 133.0         133.0
+95th percentile                  894           893
+99th percentile                2,229         2,228
+
+--------------------------------------------------------------------------
+5. SEQUENCE LENGTH VS BERT'S 512-TOKEN LIMIT
+--------------------------------------------------------------------------
+WordPiece produces roughly 1.3 sub-word tokens per word on
+email text, so 512 tokens is about 393 whitespace words.
+
+Emails over ~393 words, before : 13,490 (19.3%)
+Emails over ~393 words, after  : 13,477 (19.3%)
+Longest email after cleaning  : 46,579 words
+
+No email was dropped for being long, and no text was truncated here.
+The full cleaned text is preserved so the truncation strategy stays an
+open decision for the tokenisation stage. The options are:
+
+  a. Head truncation (truncation=True, max_length=512)
+     The default. Cheap, and phishing cues (subject line, greeting,
+     urgency, the first link) are usually front-loaded.
+  b. Head + tail
+     Keep the first ~384 and last ~128 tokens. Catches sign-off cues
+     such as spoofed signatures and unsubscribe blocks.
+  c. Chunk and pool
+     Split long emails into 512-token windows, classify each, pool the
+     results. Most faithful, and the most expensive.
+
+With about four fifths of emails already under the limit, option (a) is
+a reasonable baseline; (b) is a cheap upgrade worth measuring against it.
+
+--------------------------------------------------------------------------
+6. PREPROCESSING OPERATIONS PERFORMED
+--------------------------------------------------------------------------
+Applied, in order:
+   1. Mojibake repair on affected rows (ftfy) - 'â€™' becomes an apostrophe
+   2. Unicode NFC normalisation (canonical composition)
+   3. <script> and <style> blocks removed, including their contents
+   4. HTML comments and DOCTYPE declarations removed
+   5. HTML tags removed by tag NAME, keeping the text inside them
+   6. HTML entities unescaped (&amp; becomes &, &nbsp; becomes a space)
+   7. Quoted-printable soft line breaks removed
+   8. MIME multipart boundary delimiter lines removed
+   9. Base64 blobs of 200+ characters removed (encoded attachments)
+  10. Zero-width characters, BOMs and bidi controls removed
+  11. Unicode replacement characters removed
+  12. C0/C1 control characters removed, keeping tab and newline
+  13. Non-breaking and exotic Unicode spaces converted to plain spaces
+  14. Runs of spaces and tabs collapsed to one space
+  15. Three or more blank lines collapsed to one blank line
+  16. Leading and trailing whitespace stripped
+  17. Records with no text, or fewer than 5 words, removed
+  18. Exact and near duplicates removed after cleaning
+  19. Labels validated as exactly {0, 1}
+
+Deliberately NOT applied, because BERT needs the context:
+   - no lowercasing            casing is signal, and bert-base-cased may be used
+   - no stop-word removal      function words carry the sentence structure
+   - no stemming or lemmatising
+   - no punctuation stripping  '!!!' and sentence boundaries are signal
+   - no URL removal or masking URLs are among the strongest phishing cues
+   - no number or currency masking
+   - no NFKC folding           it would erase homoglyph attacks on brand names
+   - no tokenisation, vectorisation, embedding, splitting or training
+
+Two choices worth flagging:
+  * HTML tags are matched by tag name rather than by the generic '<...>'
+    shape, so that angle-bracket email addresses such as
+    <james@maktoob.com> survive. 553 records in the input contain that
+    form, and sender addresses are useful phishing evidence.
+  * NFC was chosen over NFKC on purpose. NFKC folds full-width and
+    look-alike characters to ASCII, which would destroy exactly the
+    homoglyph tricks used to disguise brand names in phishing.
+
+==========================================================================
+END OF REPORT
+==========================================================================

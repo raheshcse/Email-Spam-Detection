@@ -24,10 +24,26 @@ INBOX = "inbox"
 
 BOXES = {QUARANTINE: QUARANTINE_FILE, INBOX: INBOX_FILE}
 
-FIELDS = ["id", "timestamp", "label", "confidence", "moved", "text"]
+# Spam/ham has always been stored. The three phishing columns were added later
+# so the Overview and Quarantine pages can show phishing as a first-class
+# metric instead of inferring it from the spam label (which would be wrong -
+# the two detectors are independent).
+#
+# Backwards compatibility: rows written before these columns existed simply
+# have them empty. _normalise() fills the gap and _to_public() reports them as
+# None, which the UI renders as "Phishing analysis unavailable" rather than
+# guessing a verdict.
+FIELDS = [
+    "id", "timestamp", "label", "confidence", "moved", "text",
+    "phishing_label", "phishing_confidence", "risk_level",
+]
 
 # The original quarantine.csv written by src/quarantine/store.py.
 LEGACY_FIELDS = ["timestamp", "label", "email_text"]
+
+# Values the phishing column may hold, mirroring the model's own labels.
+PHISHING = "PHISHING"
+LEGITIMATE = "LEGITIMATE"
 
 _lock = threading.RLock()
 
@@ -67,6 +83,10 @@ def _normalise(row):
         "confidence": row.get("confidence", ""),
         "moved": row.get("moved", ""),
         "text": row.get("text", ""),
+        # Absent on rows written before the phishing columns existed.
+        "phishing_label": row.get("phishing_label", ""),
+        "phishing_confidence": row.get("phishing_confidence", ""),
+        "risk_level": row.get("risk_level", ""),
     }
 
 
@@ -96,20 +116,35 @@ def _write_raw(box, rows):
             writer.writerow({key: row.get(key, "") for key in FIELDS})
 
 
-def _to_public(row):
-    """Shape a stored row for the API, with sensible types."""
+def _as_float(value):
     try:
-        confidence = float(row["confidence"]) if row["confidence"] else None
+        return float(value) if value not in (None, "") else None
     except (TypeError, ValueError):
-        confidence = None
+        return None
+
+
+def _to_public(row):
+    """Shape a stored row for the API, with sensible types.
+
+    Phishing fields are None when the message predates the phishing detector
+    or when the detector was unavailable at the time. `phishing_available`
+    makes that explicit so the UI never has to guess, and never infers a
+    phishing verdict from the spam label.
+    """
+    phishing_label = (row.get("phishing_label") or "").strip().upper()
 
     return {
         "id": row["id"],
         "timestamp": row["timestamp"],
         "label": row["label"],
-        "confidence": confidence,
+        "confidence": _as_float(row.get("confidence")),
         "moved": bool(row.get("moved")),
         "text": row["text"],
+
+        "phishing_available": phishing_label in (PHISHING, LEGITIMATE),
+        "phishing_label": phishing_label or None,
+        "phishing_confidence": _as_float(row.get("phishing_confidence")),
+        "risk_level": (row.get("risk_level") or "").strip().upper() or None,
     }
 
 
@@ -121,8 +156,14 @@ def _load(box):
     return rows
 
 
-def add_message(box, text, label, confidence=None, moved=False):
-    """File a message into a mailbox and return the stored record."""
+def add_message(box, text, label, confidence=None, moved=False,
+                phishing_label=None, phishing_confidence=None, risk_level=None):
+    """File a message into a mailbox and return the stored record.
+
+    The phishing arguments are optional and default to None, so every existing
+    caller (including src/quarantine/store.quarantine_email) keeps working
+    unchanged and simply stores no phishing data.
+    """
     record = {
         "id": _new_id(),
         "timestamp": datetime.now().isoformat(timespec="seconds"),
@@ -130,6 +171,11 @@ def add_message(box, text, label, confidence=None, moved=False):
         "confidence": "" if confidence is None else f"{float(confidence):.4f}",
         "moved": "yes" if moved else "",
         "text": text,
+        "phishing_label": (phishing_label or "").upper(),
+        "phishing_confidence": (
+            "" if phishing_confidence is None else f"{float(phishing_confidence):.4f}"
+        ),
+        "risk_level": (risk_level or "").upper(),
     }
 
     with _lock:
@@ -184,24 +230,68 @@ def move_message(message_id, source, target):
 
 
 def get_stats():
-    """Counts driving the Overview section."""
+    """Counts driving the Overview section.
+
+    Spam and phishing are counted INDEPENDENTLY, from their own stored labels.
+    Neither is inferred from the other, and neither is inferred from which
+    mailbox a message sits in - a message can be HAM and PHISHING at once, and
+    quarantine now holds anything needing review, not just spam.
+    """
     with _lock:
         quarantine_rows = _load(QUARANTINE)
         inbox_rows = _load(INBOX)
 
-    spam_count = len(quarantine_rows)
-    ham_count = len(inbox_rows)
-    total = spam_count + ham_count
+    all_rows = quarantine_rows + inbox_rows
+    total = len(all_rows)
+
+    # Counted from the label, not from the mailbox. For data written before
+    # quarantine held anything but spam these give identical results.
+    spam_count = sum(1 for row in all_rows if row.get("label") == "spam")
+    ham_count = sum(1 for row in all_rows if row.get("label") == "ham")
+
+    # Only rows that actually carry a phishing verdict are counted. Legacy
+    # rows are reported separately rather than being silently bucketed.
+    phishing_count = sum(
+        1 for row in all_rows
+        if (row.get("phishing_label") or "").upper() == PHISHING
+    )
+    legitimate_count = sum(
+        1 for row in all_rows
+        if (row.get("phishing_label") or "").upper() == LEGITIMATE
+    )
+    phishing_analysed = phishing_count + legitimate_count
+    phishing_unknown = total - phishing_analysed
+
+    risk_counts = {"HIGH": 0, "MEDIUM": 0, "LOW": 0}
+    for row in all_rows:
+        level = (row.get("risk_level") or "").upper()
+        if level in risk_counts:
+            risk_counts[level] += 1
 
     return {
+        # -- existing keys, unchanged --
         "spam_count": spam_count,
         "ham_count": ham_count,
         "total": total,
         "spam_rate": round(spam_count / total, 4) if total else 0.0,
         "ham_rate": round(ham_count / total, 4) if total else 0.0,
-        "moved_count": sum(
-            1 for row in quarantine_rows + inbox_rows if row.get("moved")
+        "moved_count": sum(1 for row in all_rows if row.get("moved")),
+
+        # -- added: phishing, as an independent dimension --
+        "phishing_count": phishing_count,
+        "legitimate_count": legitimate_count,
+        "phishing_analysed": phishing_analysed,
+        "phishing_unknown": phishing_unknown,
+        "phishing_rate": (
+            round(phishing_count / phishing_analysed, 4) if phishing_analysed else 0.0
         ),
+        "legitimate_rate": (
+            round(legitimate_count / phishing_analysed, 4) if phishing_analysed else 0.0
+        ),
+
+        # -- added: rule-based risk distribution --
+        "risk_counts": risk_counts,
+        "high_risk_count": risk_counts["HIGH"],
         "last_analysed": max(
             (row["timestamp"] for row in quarantine_rows + inbox_rows if row["timestamp"]),
             default=None,

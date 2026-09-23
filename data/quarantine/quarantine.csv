@@ -1,7 +1,96 @@
-id,timestamp,label,confidence,moved,text
-99950b0f7f89,2026-08-08T20:10:09.599931,spam,,,You won!
-3579fe7d9600,2026-08-11T01:24:41.241124,spam,,,WINNER!! You have been specially selected to receive a $900 prize reward! To claim call 09061701461 now.
-7da0c93fc210,2026-08-11T01:27:17.246837,spam,,,URGENT! Your mobile number has won a FREE entry into our weekly draw. Text WIN to 80086 to claim your cash prize now.
-b924e4ce7e95,2026-08-11T01:34:13.358760,spam,,,WINNER!! You have been specially selected to receive a $900 prize reward! To claim call 09061701461 now. Claim code KL341. Valid 12 hours only.
-4bb5f5846293,2026-08-11T01:34:22.248264,spam,,,"URGENT! Your mobile number has won a FREE entry into our £1000 weekly draw. Text WIN to 80086 to claim your free ringtones and cash prize now. T&C apply, 18+ only."
-1133ddd549f6,2026-08-11T01:43:07,spam,1.0000,yes,"WINNER!! Claim your free prize now, call 09061701461"
+id,timestamp,label,confidence,moved,text,phishing_label,phishing_confidence,risk_level
+99950b0f7f89,2026-08-08T20:10:09.599931,spam,,,You won!,,,
+3579fe7d9600,2026-08-11T01:24:41.241124,spam,,,WINNER!! You have been specially selected to receive a $900 prize reward! To claim call 09061701461 now.,,,
+7da0c93fc210,2026-08-11T01:27:17.246837,spam,,,URGENT! Your mobile number has won a FREE entry into our weekly draw. Text WIN to 80086 to claim your cash prize now.,,,
+b924e4ce7e95,2026-08-11T01:34:13.358760,spam,,,WINNER!! You have been specially selected to receive a $900 prize reward! To claim call 09061701461 now. Claim code KL341. Valid 12 hours only.,,,
+4bb5f5846293,2026-08-11T01:34:22.248264,spam,,,"URGENT! Your mobile number has won a FREE entry into our £1000 weekly draw. Text WIN to 80086 to claim your free ringtones and cash prize now. T&C apply, 18+ only.",,,
+1133ddd549f6,2026-08-11T01:43:07,spam,1.0000,yes,"WINNER!! Claim your free prize now, call 09061701461",,,
+7e1b346a2e41,2026-09-18T09:45:04,spam,0.7168,,congradulations you have been selected,,,
+54cdf3dbe81c,2026-09-21T10:28:55,spam,0.7004,,Your bank account has been suspended. Click here immediately to verify your identity.,,,
+f41bb6e3120d,2026-09-21T11:16:27,spam,0.9959,,"Your account has been suspended
+
+Dear Customer,
+
+We detected unusual activity on your account. Your account has been temporarily suspended.
+
+To restore access, please verify your identity immediately by clicking the link below:
+
+http://secure-account-verification.example.com/login
+
+Failure to verify your account within 24 hours will result in permanent suspension.
+
+Thank you,
+Account Security Team",,,
+ef9066ed6f7f,2026-09-21T11:19:39,spam,0.9946,,"Important: Verify your bank account
+
+Dear Customer,
+
+We noticed a recent login attempt from an unfamiliar device.
+
+For your security, please confirm your account information by clicking the link below:
+
+http://bank-security-check.example.com/verify
+
+Please complete verification within 12 hours to prevent your account from being locked.
+
+Bank Security Department",,,
+3a110884708e,2026-09-21T11:20:07,spam,1.0000,,"Congratulations! You have won a $1,000 gift card
+
+Congratulations!
+
+You have been selected to receive a $1,000 gift card.
+
+This exclusive offer is available for a limited time only.
+
+Click below to claim your prize now.
+
+You must respond immediately before your reward expires.
+
+Congratulations again!
+
+Expected: Likely Spam → phishing result may vary depending on learned patterns.",,,
+f6b8bacc0d37,2026-09-21T11:20:11,spam,1.0000,,"Congratulations! You have won a $1,000 gift card
+
+Congratulations!
+
+You have been selected to receive a $1,000 gift card.
+
+This exclusive offer is available for a limited time only.
+
+Click below to claim your prize now.
+
+You must respond immediately before your reward expires.
+
+Congratulations again!
+
+Expected: Likely Spam → phishing result may vary depending on learned patterns.",,,
+c90081e0d696,2026-09-21T11:20:32,spam,1.0000,,"Exclusive offer just for you!
+
+SPECIAL OFFER!
+
+Get 80% OFF our premium products today only!
+
+This incredible deal will disappear at midnight.
+
+Buy now and receive a FREE BONUS with your order.
+
+Limited availability. Don't miss this amazing opportunity!
+
+Click now to claim your discount.
+
+Expected: Likely Spam → phishing may vary",,,
+bf2d11c92a81,2026-09-21T12:34:07,spam,1.0000,,"Congratulations! You have won a $1,000 gift card
+
+Congratulations!
+
+You have been selected to receive a $1,000 gift card.
+
+This exclusive offer is available for a limited time only.
+
+Click below to claim your prize now.
+
+You must respond immediately before your reward expires.
+
+Congratulations again!
+
+Expected: Likely Spam → phishing result may vary depending on learned patterns.",PHISHING,0.9995,HIGH

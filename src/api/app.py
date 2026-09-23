@@ -1,35 +1,52 @@
-# Lifecycle stage 9 — Serving API
+# Unified AI Email Threat Detection API
 #
-# Wraps the trained MultinomialNB + CountVectorizer pipeline in a FastAPI
-# service that the React dashboard (frontend/) talks to.
+# One FastAPI service that runs BOTH detectors over a single email:
 #
-# The prediction path is unchanged from the original implementation:
-#   raw text -> clean_text() -> vectorizer.transform() -> model.predict()
-# The extra fields (confidence, explanation, top signals) are derived from the
-# same model object, so the ML pipeline itself is untouched.
+#     Spam/Ham      CountVectorizer + Multinomial Naive Bayes  (existing)
+#     Phishing      fine-tuned bert-base-uncased               (new)
+#
+# and then applies a deterministic, rule-based security assessment on top.
+#
+# BACKWARD COMPATIBILITY
+# ----------------------
+# POST /predict was previously spam-only and the React frontend reads its flat
+# fields (label, confidence, top_signals, probabilities, ...). Those fields are
+# all still present and unchanged. The three new blocks - spam_detection,
+# phishing_detection, security_assessment - were ADDED alongside them, so no
+# existing client breaks. /stats, /messages and /messages/{id}/move are
+# untouched.
+#
+# Neither model is retrained or modified here. Both are loaded once at startup.
 
+import logging
 import os
+from contextlib import asynccontextmanager
 
-import joblib
-import numpy as np
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from src.api.text_cleaning import clean_text, get_cleaner_info
+from src.api.schemas import (MAX_INPUT_CHARS, EmailPredictionRequest,
+                             EmailThreatResponse, HealthResponse)
+from src.services.email_threat_service import (EmailThreatServiceError,
+                                               email_threat_service)
 from src.storage import message_store
 from src.storage.message_store import INBOX, QUARANTINE
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-7s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger("email_threat_api")
+
 # --------------------------------------------------------------------------
-# Paths and configuration
+# Configuration
 # --------------------------------------------------------------------------
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-MODEL_PATH = os.path.join(PROJECT_ROOT, "models", "spam_model.pkl")
-VECTORIZER_PATH = os.path.join(PROJECT_ROOT, "models", "count_vectorizer.pkl")
-
-# Vite dev server defaults, plus the preview server port.
 DEFAULT_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -37,31 +54,78 @@ DEFAULT_ORIGINS = [
     "http://127.0.0.1:4173",
 ]
 
-# Override with e.g. ALLOWED_ORIGINS="https://my-app.example.com" if deployed.
 ALLOWED_ORIGINS = [
     o.strip()
     for o in os.getenv("ALLOWED_ORIGINS", ",".join(DEFAULT_ORIGINS)).split(",")
     if o.strip()
 ]
 
-# Reported model quality (see src/models/evaluate.py output).
+# Reported evaluation numbers. Spam figures come from src/models/evaluate.py;
+# phishing figures are read from the saved model at startup.
 MODEL_METRICS = {
-    "test_accuracy": 0.98,
-    "spam_precision": 0.96,
-    "spam_recall": 0.90,
-    "algorithm": "Multinomial Naive Bayes",
-    "features": "CountVectorizer, 5000 features, unigrams + bigrams",
+    "spam": {
+        "test_accuracy": 0.98,
+        "spam_precision": 0.96,
+        "spam_recall": 0.90,
+        "algorithm": "Multinomial Naive Bayes",
+        "features": "CountVectorizer, 5000 features, unigrams + bigrams",
+    },
+    "phishing": {},
 }
 
-MAX_INPUT_CHARS = 20000
+
+# --------------------------------------------------------------------------
+# Startup: load both models once
+# --------------------------------------------------------------------------
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load both models before the first request is served.
+
+    Models are loaded here, not per request. A detector that fails to load is
+    logged and reported through /health; the service still starts so the other
+    detector remains usable.
+    """
+    logger.info("=" * 62)
+    logger.info("AI Email Threat Detection API - starting up")
+    logger.info("=" * 62)
+
+    results = email_threat_service.load_all()
+
+    for name, outcome in results.items():
+        if outcome["loaded"]:
+            logger.info("  %-9s model: LOADED", name)
+        else:
+            logger.error("  %-9s model: FAILED - %s", name, outcome["error"])
+
+    phishing_info = email_threat_service.phishing.info()
+    if phishing_info["loaded"]:
+        logger.info("  phishing device: %s", phishing_info["device"])
+        MODEL_METRICS["phishing"] = phishing_info.get("test_metrics") or {}
+
+    if email_threat_service.is_ready:
+        logger.info("API ready. Docs at /docs")
+    else:
+        logger.error("NO detectors loaded. /predict will return 503.")
+    logger.info("=" * 62)
+
+    yield
+
+    logger.info("Shutting down.")
+
 
 app = FastAPI(
-    title="Email Spam Detection Agent API",
+    title="AI Email Threat Detection Agent API",
     description=(
-        "Classifies an email or SMS message as spam or ham using a "
-        "Multinomial Naive Bayes model trained on CountVectorizer features."
+        "Runs two independent detectors over one email:\n\n"
+        "* **Spam/Ham** - CountVectorizer + Multinomial Naive Bayes\n"
+        "* **Phishing** - fine-tuned bert-base-uncased\n\n"
+        "and combines them with a deterministic, rule-based risk assessment. "
+        "The risk level is **not** a machine-learning output."
     ),
-    version="1.0.0",
+    version="2.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -72,31 +136,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # --------------------------------------------------------------------------
-# Model loading
+# Error handling - never leak a stack trace to the client
 # --------------------------------------------------------------------------
 
-model = joblib.load(MODEL_PATH)
-vectorizer = joblib.load(VECTORIZER_PATH)
 
-FEATURE_NAMES = np.asarray(vectorizer.get_feature_names_out())
-CLASSES = [str(c) for c in model.classes_]
-
-# Naive Bayes log-probability gap per token: how much more likely a token is
-# under the spam class than under the ham class. Used to name the words that
-# pushed a prediction one way, which is what the UI shows as "key signals".
-if "spam" in CLASSES and "ham" in CLASSES:
-    _spam_idx = CLASSES.index("spam")
-    _ham_idx = CLASSES.index("ham")
-    TOKEN_SPAM_SCORE = (
-        model.feature_log_prob_[_spam_idx] - model.feature_log_prob_[_ham_idx]
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Log the real error, return a generic message."""
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error. Check the server logs."},
     )
-else:  # pragma: no cover - defensive, model is trained on ham/spam
-    TOKEN_SPAM_SCORE = np.zeros(len(FEATURE_NAMES))
 
 
 # --------------------------------------------------------------------------
-# Schemas
+# Legacy schemas (kept for the existing mailbox endpoints)
 # --------------------------------------------------------------------------
 
 
@@ -105,46 +162,12 @@ class Email(BaseModel):
 
 
 class MoveRequest(BaseModel):
-    to: str = Field(
-        ...,
-        description="Destination mailbox: 'inbox' or 'quarantine'.",
-    )
+    to: str = Field(..., description="Destination mailbox: 'inbox' or 'quarantine'.")
 
 
 # --------------------------------------------------------------------------
-# Helpers
+# Presentation helpers (unchanged behaviour)
 # --------------------------------------------------------------------------
-
-
-def _top_signals(vector, label, limit=6):
-    """Return the tokens in this message that argued hardest for the label."""
-    indices = vector.nonzero()[1]
-    if indices.size == 0:
-        return []
-
-    scores = TOKEN_SPAM_SCORE[indices]
-    counts = np.asarray(vector.todense()).ravel()[indices]
-
-    # A token's pull is its per-occurrence score times how often it appears.
-    weights = scores * counts
-    if label == "ham":
-        weights = -weights
-
-    order = np.argsort(weights)[::-1]
-
-    signals = []
-    for pos in order[:limit]:
-        weight = float(weights[pos])
-        if weight <= 0:
-            continue
-        signals.append(
-            {
-                "term": str(FEATURE_NAMES[indices[pos]]),
-                "weight": round(weight, 3),
-                "count": int(counts[pos]),
-            }
-        )
-    return signals
 
 
 def _confidence_band(confidence):
@@ -190,9 +213,7 @@ def _build_explanation(label, confidence, signals, known_words, cleaned_words):
         )
         base += f", with everyday terms like {terms}." if terms else "."
         if band == "low":
-            base += (
-                " Confidence is on the low side, so give it a quick manual glance."
-            )
+            base += " Confidence is on the low side, so give it a quick manual glance."
 
     if cleaned_words < 3:
         base += (
@@ -203,119 +224,184 @@ def _build_explanation(label, confidence, signals, known_words, cleaned_words):
     return base
 
 
-# --------------------------------------------------------------------------
-# Routes
-# --------------------------------------------------------------------------
+def _validate_text(raw):
+    """Shared input validation. Returns the trimmed text or raises."""
+    text = (raw or "").strip()
 
-
-@app.get("/")
-def root():
-    return {
-        "service": "Email Spam Detection Agent API",
-        "status": "ok",
-        "endpoints": [
-            "/health",
-            "/predict",
-            "/metrics",
-            "/stats",
-            "/messages",
-            "/docs",
-        ],
-    }
-
-
-@app.get("/health")
-def health():
-    """Cheap liveness probe the frontend uses to detect a cold backend."""
-    return {
-        "status": "ok",
-        "model_loaded": model is not None,
-        "vectorizer_loaded": vectorizer is not None,
-        "classes": CLASSES,
-        "vocabulary_size": int(len(FEATURE_NAMES)),
-        "cleaner": get_cleaner_info(),
-    }
-
-
-@app.get("/metrics")
-def metrics():
-    """Reported evaluation numbers, used by the How It Works panel."""
-    return MODEL_METRICS
-
-
-@app.post("/predict")
-def predict(email: Email):
-    raw = (email.text or "").strip()
-
-    if not raw:
+    if not text:
         raise HTTPException(
             status_code=422,
             detail="Email text is empty. Paste a message before analysing.",
         )
 
-    if len(raw) > MAX_INPUT_CHARS:
+    if len(text) > MAX_INPUT_CHARS:
         raise HTTPException(
             status_code=413,
             detail=f"Message is too long. Limit is {MAX_INPUT_CHARS} characters.",
         )
 
-    cleaned = clean_text(raw)
-    X = vectorizer.transform([cleaned])
+    return text
 
-    label = str(model.predict(X)[0])
 
-    proba = model.predict_proba(X)[0]
-    probabilities = {cls: float(p) for cls, p in zip(CLASSES, proba)}
-    confidence = float(probabilities.get(label, max(proba)))
+# --------------------------------------------------------------------------
+# Routes
+# --------------------------------------------------------------------------
 
-    signals = _top_signals(X, label)
-    known_words = int(X.nnz)
-    cleaned_words = len(cleaned.split())
 
-    # Every analysed message is filed: spam into quarantine, ham into the inbox.
-    # Spam quarantining preserves the original behaviour.
-    box = QUARANTINE if label == "spam" else INBOX
-    stored = message_store.add_message(box, raw, label, confidence=confidence)
-    quarantined = label == "spam"
-
+@app.get("/", tags=["meta"])
+def root():
     return {
-        "id": stored["id"],
-        "box": box,
-        # "label" is kept for backwards compatibility with the original API.
-        "label": label,
-        "prediction": label,
-        "is_spam": label == "spam",
-        "confidence": round(confidence, 4),
-        "confidence_percent": round(confidence * 100, 2),
-        "confidence_band": _confidence_band(confidence),
-        "probabilities": {k: round(v, 4) for k, v in probabilities.items()},
-        "explanation": _build_explanation(
-            label, confidence, signals, known_words, cleaned_words
-        ),
-        "top_signals": signals,
-        "cleaned_text": cleaned,
-        "stats": {
-            "characters": len(raw),
-            "words": len(raw.split()),
-            "cleaned_words": cleaned_words,
-            "recognised_features": known_words,
-        },
-        "quarantined": quarantined,
+        "service": "AI Email Threat Detection Agent API",
+        "version": "2.0.0",
+        "status": "ok",
+        "detectors": ["spam/ham (Naive Bayes)", "phishing (BERT)"],
+        "endpoints": [
+            "/health", "/predict", "/metrics", "/stats", "/messages", "/docs",
+        ],
     }
 
 
-@app.get("/stats")
+@app.get("/health", response_model=HealthResponse, tags=["meta"])
+def health():
+    """Liveness probe reporting the load state of both models."""
+    info = email_threat_service.info()
+
+    spam_loaded = info["spam"]["loaded"]
+    phishing_loaded = info["phishing"]["loaded"]
+
+    if spam_loaded and phishing_loaded:
+        status = "healthy"
+    elif spam_loaded or phishing_loaded:
+        status = "degraded"
+    else:
+        status = "unhealthy"
+
+    return {
+        "status": status,
+        "spam_model": "loaded" if spam_loaded else "not loaded",
+        "phishing_model": "loaded" if phishing_loaded else "not loaded",
+        "detectors": info,
+        # Legacy keys the existing frontend reads.
+        "model_loaded": spam_loaded,
+        "vectorizer_loaded": spam_loaded,
+        "classes": info["spam"].get("classes", []),
+        "vocabulary_size": info["spam"].get("vocabulary_size", 0),
+        "cleaner": info["spam"].get("cleaner"),
+    }
+
+
+@app.get("/metrics", tags=["meta"])
+def metrics():
+    """Reported evaluation numbers for both models."""
+    spam = dict(MODEL_METRICS["spam"])
+    # The existing frontend reads these at the top level.
+    spam["phishing"] = MODEL_METRICS["phishing"]
+    return spam
+
+
+@app.post(
+    "/predict",
+    response_model=EmailThreatResponse,
+    response_model_exclude_none=True,
+    tags=["detection"],
+    summary="Analyse one email with both detectors",
+    responses={
+        422: {"description": "Empty or invalid input"},
+        413: {"description": "Input too long"},
+        503: {"description": "No detector is available"},
+    },
+)
+def predict(request: EmailPredictionRequest):
+    """Run the spam/ham model and the phishing model over one email.
+
+    Returns both ML predictions plus a rule-based risk level. The flat
+    spam-only fields from the previous API version are still included.
+    """
+    raw = _validate_text(request.text)
+
+    try:
+        combined = email_threat_service.analyse(
+            raw, phishing_threshold=request.phishing_threshold
+        )
+    except EmailThreatServiceError as error:
+        raise HTTPException(status_code=503, detail=str(error))
+
+    response = {
+        "spam_detection": combined["spam_detection"],
+        "phishing_detection": combined["phishing_detection"],
+        "security_assessment": combined["security_assessment"],
+    }
+
+    # ---- legacy spam-only fields, byte-for-byte as before ----
+    spam = combined["_spam_raw"]
+    phishing = combined["_phishing_raw"]
+    assessment = combined["security_assessment"]
+
+    if spam is not None:
+        label = spam["prediction"]
+        confidence = spam["confidence"]
+
+        # Routing: anything either detector flags goes to quarantine, which is
+        # now "messages requiring security review" rather than "spam".
+        #
+        # Previously only spam was quarantined, which meant a HAM + PHISHING
+        # email was delivered straight to the inbox - the wrong outcome for a
+        # security tool, and inconsistent with the backend's own
+        # recommended_action ("Quarantine and do not click any links").
+        needs_review = spam["is_spam"] or bool(phishing and phishing["is_phishing"])
+        box = QUARANTINE if needs_review else INBOX
+
+        stored = message_store.add_message(
+            box, raw, label,
+            confidence=confidence,
+            # Stored so Overview and Quarantine can show phishing as its own
+            # dimension instead of inferring it from the spam label.
+            phishing_label=phishing["prediction"] if phishing else None,
+            phishing_confidence=(
+                phishing["phishing_probability"] if phishing else None
+            ),
+            risk_level=assessment["risk_level"],
+        )
+
+        response.update({
+            "id": stored["id"],
+            "box": box,
+            "label": label,
+            "prediction": label,
+            "is_spam": spam["is_spam"],
+            "confidence": round(confidence, 4),
+            "confidence_percent": round(confidence * 100, 2),
+            "confidence_band": _confidence_band(confidence),
+            "probabilities": {k: round(v, 4) for k, v in spam["probabilities"].items()},
+            "explanation": _build_explanation(
+                label, confidence, spam["top_signals"],
+                spam["recognised_features"], spam["cleaned_words"],
+            ),
+            "top_signals": spam["top_signals"],
+            "cleaned_text": spam["cleaned_text"],
+            "stats": {
+                "characters": len(raw),
+                "words": len(raw.split()),
+                "cleaned_words": spam["cleaned_words"],
+                "recognised_features": spam["recognised_features"],
+            },
+            # True when the message was filed into quarantine, which is now
+            # driven by either detector rather than by spam alone.
+            "quarantined": box == QUARANTINE,
+        })
+
+    return response
+
+
+@app.get("/stats", tags=["mailbox"])
 def stats():
     """Totals for the Overview section: spam vs ham across both mailboxes."""
     return message_store.get_stats()
 
 
-@app.get("/messages")
+@app.get("/messages", tags=["mailbox"])
 def messages(box: str, limit: int = 200):
-    """List one mailbox, newest first.
-
-    `box` is either `quarantine` (predicted spam) or `inbox` (predicted ham).
-    """
+    """List one mailbox, newest first: `quarantine` or `inbox`."""
     try:
         items = message_store.list_messages(box, limit=limit)
     except message_store.UnknownBox as exc:
@@ -324,22 +410,17 @@ def messages(box: str, limit: int = 200):
     return {"box": box, "count": len(items), "messages": items}
 
 
-@app.post("/messages/{message_id}/move")
+@app.post("/messages/{message_id}/move", tags=["mailbox"])
 def move_message(message_id: str, request: MoveRequest):
-    """Move a message to the other mailbox and relabel it.
-
-    Used to correct the model: restore a false positive from quarantine to the
-    inbox, or flag a false negative in the inbox as spam.
-    """
+    """Move a message to the other mailbox and relabel it."""
     target = request.to
-    source = QUARANTINE if target == INBOX else INBOX
 
     if target not in (INBOX, QUARANTINE):
         raise HTTPException(
-            status_code=422,
-            detail="Destination must be 'inbox' or 'quarantine'.",
+            status_code=422, detail="Destination must be 'inbox' or 'quarantine'."
         )
 
+    source = QUARANTINE if target == INBOX else INBOX
     moved = message_store.move_message(message_id, source, target)
 
     if moved is None:

@@ -1,0 +1,359 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1700 1180" width="1700" height="1180" font-family="Segoe UI, Inter, Helvetica, Arial, sans-serif">
+<defs>
+  <style>
+    .bg      { fill:#080b14 }
+    .card    { fill:#141a2b; stroke:#ffffff; stroke-opacity:0.094; stroke-width:1; rx:12 }
+    .card2   { fill:#0e1322; stroke:#ffffff; stroke-opacity:0.078; stroke-width:1; rx:10 }
+    .h1      { fill:#e8ecf5; font-size:34px; font-weight:700 }
+    .h2      { fill:#e8ecf5; font-size:19px; font-weight:600 }
+    .h3      { fill:#e8ecf5; font-size:15px; font-weight:600 }
+    .lbl     { fill:#98a3bd; font-size:13px }
+    .sm      { fill:#6a748e; font-size:11.5px }
+    .xs      { fill:#6a748e; font-size:10.5px }
+    .mono    { font-family:Consolas, "JetBrains Mono", monospace }
+    .sect    { fill:#6a748e; font-size:12.5px; font-weight:600; letter-spacing:2px }
+    .accent  { fill:#5b8cff }
+    .red     { fill:#ff5f6d }
+    .green   { fill:#2fd18c }
+    .amber   { fill:#f5a524 }
+    .arrow   { stroke:#5b8cff; stroke-width:2; fill:none; marker-end:url(#a) }
+    .arrow2  { stroke:#4a5570; stroke-width:1.6; fill:none; marker-end:url(#b) }
+    .divider { stroke:#ffffff; stroke-opacity:0.071; stroke-width:1 }
+  </style>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0 0 L10 5 L0 10 z" fill="#5b8cff"/>
+  </marker>
+  <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M0 0 L10 5 L0 10 z" fill="#4a5570"/>
+  </marker>
+</defs>
+
+<rect class="bg" x="0" y="0" width="1700" height="1180"/>
+
+<!-- ============================== HEADER ============================== -->
+<rect x="38" y="26" width="46" height="46" rx="12" fill="#5b8cff" fill-opacity="0.157" stroke="#5b8cff" stroke-opacity="0.349"/>
+<path d="M61 36 L49 41 v8.5c0 7.2 4.8 13.8 12 16 7.2-2.2 12-8.8 12-16V41z" fill="none" stroke="#c3d5ff" stroke-width="2.2" stroke-linejoin="round"/>
+<path d="m55.5 50.5 3.6 3.6 6.8-7" fill="none" stroke="#c3d5ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<text class="h1" x="100" y="49">AI Email Threat Detection</text>
+<text class="lbl" x="100" y="70">End-to-end architecture · two independent ML detectors + rule-based risk engine</text>
+
+<g transform="translate(1160,30)">
+  <rect class="card2" x="0" y="0" width="122" height="44"/>
+  <text class="green" x="61" y="22" font-size="18" font-weight="700" text-anchor="middle">99.19%</text>
+  <text class="xs" x="61" y="36" text-anchor="middle">test accuracy</text>
+  <rect class="card2" x="132" y="0" width="122" height="44"/>
+  <text class="green" x="193" y="22" font-size="18" font-weight="700" text-anchor="middle">98.75%</text>
+  <text class="xs" x="193" y="36" text-anchor="middle">phishing recall</text>
+  <rect class="card2" x="264" y="0" width="122" height="44"/>
+  <text class="green" x="325" y="22" font-size="18" font-weight="700" text-anchor="middle">99.59%</text>
+  <text class="xs" x="325" y="36" text-anchor="middle">phishing precision</text>
+  <rect class="card2" x="396" y="0" width="122" height="44"/>
+  <text class="accent" x="457" y="22" font-size="18" font-weight="700" text-anchor="middle">65,525</text>
+  <text class="xs" x="457" y="36" text-anchor="middle">training records</text>
+</g>
+<line class="divider" x1="38" y1="92" x2="1662" y2="92"/>
+
+<!-- ================= STAGE 1 — OFFLINE TRAINING PIPELINE ================= -->
+<text class="sect" x="38" y="124">STAGE 1 — OFFLINE ML PIPELINE  (scripts/)</text>
+
+<g transform="translate(38,140)">
+  <rect class="card" x="0" y="0" width="1624" height="196"/>
+
+  <!-- 1 corpora -->
+  <rect class="card2" x="22" y="22" width="196" height="152"/>
+  <text class="h3" x="38" y="46">Raw corpora</text>
+  <text class="sm" x="38" y="68">CEAS 2008 · Enron</text>
+  <text class="sm" x="38" y="86">Ling · Nazario</text>
+  <text class="sm" x="38" y="104">Nigerian Fraud</text>
+  <text class="sm" x="38" y="122">SpamAssassin</text>
+  <text class="xs" x="38" y="148">data/raw/ · 82,486 rows</text>
+  <rect x="38" y="156" width="56" height="15" rx="4" fill="#5b8cff" fill-opacity="0.125"/>
+  <text class="accent" x="66" y="167" font-size="9.5" text-anchor="middle">pandas</text>
+
+  <path class="arrow" d="M224 98 H272"/>
+
+  <!-- 2 consolidate -->
+  <rect class="card2" x="278" y="22" width="196" height="152"/>
+  <text class="h3" x="294" y="46">Consolidate</text>
+  <text class="sm" x="294" y="68">Schema mapping</text>
+  <text class="sm" x="294" y="86">Label normalisation</text>
+  <text class="sm" x="294" y="104">Exact + near dedup</text>
+  <text class="sm" x="294" y="122">Balanced sampling</text>
+  <text class="xs" x="294" y="148">70,000 · 50/50</text>
+  <rect x="294" y="156" width="130" height="15" rx="4" fill="#5b8cff" fill-opacity="0.125"/>
+  <text class="accent" x="359" y="167" font-size="9.5" text-anchor="middle">build_phishing_dataset.py</text>
+
+  <path class="arrow" d="M480 98 H528"/>
+
+  <!-- 3 preprocess -->
+  <rect class="card2" x="534" y="22" width="196" height="152"/>
+  <text class="h3" x="550" y="46">Preprocess</text>
+  <text class="sm" x="550" y="68">Mojibake repair (ftfy)</text>
+  <text class="sm" x="550" y="86">HTML / MIME strip</text>
+  <text class="sm" x="550" y="104">Unicode NFC</text>
+  <text class="sm" x="550" y="122">Casing + URLs kept</text>
+  <text class="xs" x="550" y="148">69,974 records</text>
+  <rect x="550" y="156" width="42" height="15" rx="4" fill="#5b8cff" fill-opacity="0.125"/>
+  <text class="accent" x="571" y="167" font-size="9.5" text-anchor="middle">ftfy</text>
+  <rect x="598" y="156" width="46" height="15" rx="4" fill="#5b8cff" fill-opacity="0.125"/>
+  <text class="accent" x="621" y="167" font-size="9.5" text-anchor="middle">spaCy</text>
+
+  <path class="arrow" d="M736 98 H784"/>
+
+  <!-- 4 split -->
+  <rect class="card2" x="790" y="22" width="196" height="152"/>
+  <text class="h3" x="806" y="46" font-size="12.5">Leakage audit + split</text>
+  <text class="sm" x="806" y="68">3 dedup layers</text>
+  <text class="sm" x="806" y="86">−4,449 near-dupes</text>
+  <text class="sm" x="806" y="104">Stratified 80/10/10</text>
+  <text class="sm" x="806" y="122">seed 42</text>
+  <text class="xs" x="806" y="148">52,420 / 6,552 / 6,553</text>
+  <rect x="806" y="156" width="80" height="15" rx="4" fill="#5b8cff" fill-opacity="0.125"/>
+  <text class="accent" x="846" y="167" font-size="9.5" text-anchor="middle">scikit-learn</text>
+
+  <path class="arrow" d="M992 98 H1040"/>
+
+  <!-- 5 finetune -->
+  <rect class="card2" x="1046" y="22" width="216" height="152"/>
+  <text class="h3" x="1062" y="46">Fine-tune BERT</text>
+  <text class="sm" x="1062" y="68">bert-base-uncased</text>
+  <text class="sm" x="1062" y="86">max_len 512 · batch 32</text>
+  <text class="sm" x="1062" y="104">lr 2e-5 · 1 epoch</text>
+  <text class="sm" x="1062" y="122">best-F1 checkpoint</text>
+  <text class="xs" x="1062" y="148">110M parameters</text>
+  <rect x="1062" y="156" width="56" height="15" rx="4" fill="#5b8cff" fill-opacity="0.125"/>
+  <text class="accent" x="1090" y="167" font-size="9.5" text-anchor="middle">PyTorch</text>
+  <rect x="1124" y="156" width="84" height="15" rx="4" fill="#5b8cff" fill-opacity="0.125"/>
+  <text class="accent" x="1166" y="167" font-size="9.5" text-anchor="middle">Transformers</text>
+
+  <path class="arrow" d="M1268 98 H1316"/>
+
+  <!-- 6 artifacts -->
+  <rect x="1322" y="22" width="280" height="152" rx="10" fill="#2fd18c" fill-opacity="0.071" stroke="#2fd18c" stroke-opacity="0.302"/>
+  <text class="h3" x="1338" y="46">Model artifacts</text>
+  <text class="sm mono" x="1338" y="70">models/spam_model.pkl</text>
+  <text class="sm mono" x="1338" y="90">models/count_vectorizer.pkl</text>
+  <text class="sm mono" x="1338" y="110">models/phishing_bert/</text>
+  <text class="xs" x="1338" y="134">Loaded once at API startup</text>
+  <text class="xs" x="1338" y="152">reports/ · metrics, confusion matrix</text>
+  <rect x="1338" y="158" width="52" height="15" rx="4" fill="#2fd18c" fill-opacity="0.133"/>
+  <text class="green" x="1364" y="169" font-size="9.5" text-anchor="middle">joblib</text>
+</g>
+
+<!-- ================= STAGE 2 — RUNTIME ================= -->
+<text class="sect" x="38" y="378">STAGE 2 — RUNTIME REQUEST FLOW</text>
+
+<!-- ========== LEFT: the actual React dashboard ========== -->
+<g transform="translate(38,394)">
+  <rect class="card" x="0" y="0" width="700" height="742"/>
+  <text class="h2" x="22" y="34">React Dashboard</text>
+  <text class="lbl" x="22" y="56">React 18 · Vite 5 · CSS custom properties</text>
+  <rect x="560" y="18" width="118" height="24" rx="6" fill="#5b8cff" fill-opacity="0.125"/>
+  <text class="accent" x="619" y="34" font-size="11" text-anchor="middle">localhost:5173</text>
+
+  <!-- browser chrome -->
+  <rect x="22" y="76" width="656" height="644" rx="10" fill="#080b14" stroke="#ffffff" stroke-opacity="0.122"/>
+  <rect x="22" y="76" width="656" height="30" rx="10" fill="#0e1322"/>
+  <circle cx="40" cy="91" r="4.5" fill="#ff5f6d"/><circle cx="55" cy="91" r="4.5" fill="#f5a524"/><circle cx="70" cy="91" r="4.5" fill="#2fd18c"/>
+  <rect x="86" y="84" width="300" height="15" rx="4" fill="#ffffff" fill-opacity="0.051"/>
+  <text class="xs mono" x="96" y="95">http://localhost:5173</text>
+
+  <!-- app header -->
+  <rect x="36" y="120" width="30" height="30" rx="8" fill="#5b8cff" fill-opacity="0.157" stroke="#5b8cff" stroke-opacity="0.349"/>
+  <path d="M51 127 l-8 3.2v5.6c0 4.7 3.2 9 8 10.4 4.8-1.4 8-5.7 8-10.4v-5.6z" fill="none" stroke="#c3d5ff" stroke-width="1.5"/>
+  <text class="h3" x="76" y="134">AI Email Threat Detection</text>
+  <text class="xs" x="76" y="148">AI-powered email security analysis</text>
+  <rect x="500" y="124" width="160" height="24" rx="12" fill="#2fd18c" fill-opacity="0.122" stroke="#2fd18c" stroke-opacity="0.380"/>
+  <circle cx="516" cy="136" r="4" fill="#2fd18c"/>
+  <text class="green" x="527" y="140" font-size="11">System Operational</text>
+
+  <!-- tab bar -->
+  <rect x="36" y="162" width="624" height="34" rx="9" fill="#141a2b" stroke="#ffffff" stroke-opacity="0.078"/>
+  <rect x="42" y="167" width="118" height="24" rx="6" fill="#5b8cff" fill-opacity="0.161" stroke="#5b8cff" stroke-opacity="0.420"/>
+  <text fill="#e8ecf5" x="101" y="183" font-size="11.5" text-anchor="middle">Analyzer</text>
+  <text class="lbl" x="196" y="183" font-size="11.5" text-anchor="middle">Quarantine</text>
+  <rect x="246" y="173" width="22" height="13" rx="6" fill="#ff5f6d" fill-opacity="0.133"/>
+  <text class="red" x="257" y="183" font-size="9" text-anchor="middle">95</text>
+  <text class="lbl" x="312" y="183" font-size="11.5" text-anchor="middle">Inbox</text>
+  <rect x="340" y="173" width="22" height="13" rx="6" fill="#2fd18c" fill-opacity="0.133"/>
+  <text class="green" x="351" y="183" font-size="9" text-anchor="middle">17</text>
+  <text class="lbl" x="400" y="183" font-size="11.5" text-anchor="middle">Overview</text>
+  <text class="lbl" x="520" y="183" font-size="11.5" text-anchor="middle">System Status</text>
+
+  <!-- analyzer input -->
+  <rect x="36" y="208" width="302" height="290" rx="10" fill="#141a2b" stroke="#ffffff" stroke-opacity="0.078"/>
+  <text class="h3" x="52" y="232" font-size="13">Analyze an Email</text>
+  <text class="xs" x="52" y="248">Submit an email to detect spam and</text>
+  <text class="xs" x="52" y="262">phishing threats using machine learning.</text>
+  <text class="xs" x="52" y="286">Subject</text>
+  <rect x="52" y="292" width="270" height="24" rx="6" fill="#080b14" stroke="#ffffff" stroke-opacity="0.122"/>
+  <text class="sm" x="62" y="308" font-size="10.5">Account suspension notice</text>
+  <text class="xs" x="52" y="334">Email body</text>
+  <rect x="52" y="340" width="270" height="92" rx="6" fill="#080b14" stroke="#5b8cff" stroke-opacity="0.420"/>
+  <text class="sm" x="62" y="358" font-size="10.5">Your bank account has been</text>
+  <text class="sm" x="62" y="374" font-size="10.5">suspended. Click here immediately</text>
+  <text class="sm" x="62" y="390" font-size="10.5">to verify your identity.</text>
+  <text class="xs" x="62" y="424">14 words · 96 / 20,000 characters</text>
+  <rect x="52" y="444" width="128" height="30" rx="8" fill="#5b8cff"/>
+  <text fill="#ffffff" x="116" y="464" font-size="12" font-weight="600" text-anchor="middle">Analyze Email</text>
+  <rect x="188" y="444" width="72" height="30" rx="8" fill="#ffffff" fill-opacity="0.039" stroke="#ffffff" stroke-opacity="0.141"/>
+  <text class="lbl" x="224" y="464" font-size="12" text-anchor="middle">Clear</text>
+
+  <!-- results column -->
+  <text class="xs" x="354" y="222" letter-spacing="1.5">SECURITY ANALYSIS RESULTS</text>
+
+  <rect x="354" y="232" width="306" height="104" rx="10" fill="#ff5f6d" fill-opacity="0.078" stroke="#ff5f6d" stroke-opacity="0.420"/>
+  <text class="xs" x="370" y="252" letter-spacing="1">PHISHING DETECTION</text>
+  <rect x="592" y="242" width="54" height="15" rx="7" fill="#5b8cff" fill-opacity="0.149" stroke="#5b8cff" stroke-opacity="0.349"/>
+  <text class="accent" x="619" y="253" font-size="9">Primary</text>
+  <text class="red" x="370" y="286" font-size="26" font-weight="700">PHISHING</text>
+  <line class="divider" x1="370" y1="298" x2="644" y2="298"/>
+  <text class="lbl" x="370" y="316" font-size="11">Model confidence</text>
+  <text fill="#e8ecf5" x="644" y="316" font-size="11.5" font-weight="600" text-anchor="end">99.8%</text>
+  <text class="lbl" x="370" y="330" font-size="11">Engine</text>
+  <text class="lbl" x="644" y="330" font-size="11" text-anchor="end">BERT</text>
+
+  <rect x="354" y="346" width="306" height="96" rx="10" fill="#2fd18c" fill-opacity="0.078" stroke="#2fd18c" stroke-opacity="0.380"/>
+  <text class="xs" x="370" y="366" letter-spacing="1">SPAM DETECTION</text>
+  <text class="green" x="370" y="398" font-size="24" font-weight="700">HAM</text>
+  <line class="divider" x1="370" y1="408" x2="644" y2="408"/>
+  <text class="lbl" x="370" y="424" font-size="11">Model confidence</text>
+  <text fill="#e8ecf5" x="644" y="424" font-size="11.5" font-weight="600" text-anchor="end">95.9%</text>
+  <text class="lbl" x="370" y="437" font-size="11">Engine</text>
+  <text class="lbl" x="644" y="437" font-size="11" text-anchor="end">Naive Bayes</text>
+
+  <rect x="354" y="452" width="306" height="108" rx="10" fill="#141a2b" stroke="#ff5f6d" stroke-opacity="0.420"/>
+  <text class="h3" x="370" y="472" font-size="12.5">Security Assessment</text>
+  <text class="xs" x="370" y="486">Rule-based, not a machine-learning prediction</text>
+  <rect x="370" y="494" width="274" height="34" rx="7" fill="#ff5f6d" fill-opacity="0.122"/>
+  <text class="lbl" x="382" y="516" font-size="11">Risk</text>
+  <text class="red" x="632" y="518" font-size="19" font-weight="700" text-anchor="end">HIGH</text>
+  <text class="xs" x="370" y="546">Quarantine and do not click any links.</text>
+
+  <!-- key insight callout -->
+  <rect x="36" y="572" width="624" height="62" rx="9" fill="#f5a524" fill-opacity="0.102" stroke="#f5a524" stroke-opacity="0.400"/>
+  <text class="amber" x="52" y="594" font-size="12.5" font-weight="600">HAM + PHISHING — the case a spam filter alone misses</text>
+  <text class="sm" x="52" y="614" font-size="11">The two classifiers are independent. HAM does not imply LEGITIMATE, and</text>
+  <text class="sm" x="52" y="628" font-size="11">SPAM does not imply PHISHING. All four combinations are represented.</text>
+
+  <text class="xs" x="36" y="660">Other views</text>
+  <rect x="36" y="668" width="148" height="44" rx="8" fill="#0e1322" stroke="#ffffff" stroke-opacity="0.078"/>
+  <text class="lbl" x="48" y="686" font-size="11">Overview</text>
+  <text class="xs" x="48" y="701">spam + phishing charts</text>
+  <rect x="192" y="668" width="148" height="44" rx="8" fill="#0e1322" stroke="#ffffff" stroke-opacity="0.078"/>
+  <text class="lbl" x="204" y="686" font-size="11">Quarantine</text>
+  <text class="xs" x="204" y="701">All / Spam / Phishing / High</text>
+  <rect x="348" y="668" width="148" height="44" rx="8" fill="#0e1322" stroke="#ffffff" stroke-opacity="0.078"/>
+  <text class="lbl" x="360" y="686" font-size="11">Inbox</text>
+  <text class="xs" x="360" y="701">delivered messages</text>
+  <rect x="504" y="668" width="156" height="44" rx="8" fill="#0e1322" stroke="#ffffff" stroke-opacity="0.078"/>
+  <text class="lbl" x="516" y="686" font-size="11">System Status</text>
+  <text class="xs" x="516" y="701">live /health polling</text>
+</g>
+
+<!-- ========== arrows UI <-> API ========== -->
+<path class="arrow" d="M746 560 H812"/>
+<text class="xs mono" x="779" y="546" font-size="9" text-anchor="middle">POST /predict</text>
+<text class="xs" x="779" y="580" font-size="9" text-anchor="middle">email text</text>
+<path class="arrow" d="M812 660 H746"/>
+<text class="xs" x="779" y="646" font-size="9" text-anchor="middle">JSON verdicts</text>
+
+<!-- ========== RIGHT: backend ========== -->
+<g transform="translate(818,394)">
+  <rect class="card" x="0" y="0" width="844" height="742"/>
+  <text class="h2" x="22" y="34">FastAPI Backend</text>
+  <text class="lbl" x="22" y="56">Python 3.10 · FastAPI · Pydantic · Uvicorn</text>
+  <rect x="686" y="18" width="136" height="24" rx="6" fill="#5b8cff" fill-opacity="0.125"/>
+  <text class="accent" x="754" y="34" font-size="11" text-anchor="middle">127.0.0.1:8000</text>
+
+  <!-- api layer -->
+  <rect class="card2" x="22" y="76" width="800" height="92"/>
+  <text class="h3" x="38" y="100" font-size="13">API layer</text>
+  <text class="xs mono" x="38" y="122">POST /predict</text>
+  <text class="xs mono" x="150" y="122">GET /health</text>
+  <text class="xs mono" x="252" y="122">GET /metrics</text>
+  <text class="xs mono" x="362" y="122">GET /stats</text>
+  <text class="xs mono" x="458" y="122">GET /messages</text>
+  <text class="xs mono" x="580" y="122">POST /messages/{id}/move</text>
+  <text class="sm" x="38" y="146">Pydantic validation · 20,000 char limit · CORS allow-list · no stack traces leaked</text>
+  <rect x="38" y="152" width="62" height="15" rx="4" fill="#5b8cff" fill-opacity="0.125"/>
+  <text class="accent" x="69" y="163" font-size="9.5" text-anchor="middle">Pydantic</text>
+  <rect x="106" y="152" width="74" height="15" rx="4" fill="#5b8cff" fill-opacity="0.125"/>
+  <text class="accent" x="143" y="163" font-size="9.5" text-anchor="middle">OpenAPI</text>
+
+  <path class="arrow" d="M222 176 V214"/>
+  <path class="arrow" d="M622 176 V214"/>
+
+  <!-- detectors -->
+  <rect x="22" y="220" width="390" height="214" rx="10" fill="#0e1322" stroke="#2fd18c" stroke-opacity="0.251"/>
+  <text class="h3" x="38" y="246" font-size="13">Spam Detector</text>
+  <rect x="300" y="232" width="96" height="17" rx="4" fill="#2fd18c" fill-opacity="0.122"/>
+  <text class="green" x="348" y="245" font-size="9.5" text-anchor="middle">scikit-learn</text>
+  <text class="sm" x="38" y="272">1 · clean_text() — spaCy lemmatise</text>
+  <text class="sm" x="38" y="292">2 · CountVectorizer.transform()</text>
+  <text class="xs" x="52" y="308">5,000 features · 1–2 grams</text>
+  <text class="sm" x="38" y="330">3 · MultinomialNB.predict_proba()</text>
+  <text class="xs" x="52" y="346">Laplace smoothing α = 1.0</text>
+  <rect x="38" y="360" width="340" height="30" rx="7" fill="#2fd18c" fill-opacity="0.078" stroke="#2fd18c" stroke-opacity="0.302"/>
+  <text class="green" x="52" y="380" font-size="13" font-weight="700">SPAM  /  HAM</text>
+  <text class="xs" x="366" y="380" text-anchor="end">+ top signals</text>
+  <text class="xs" x="38" y="410">Answers: is this unwanted bulk mail?</text>
+  <text class="xs mono" x="38" y="426">backend/src/models/spam_detector.py</text>
+
+  <rect x="432" y="220" width="390" height="214" rx="10" fill="#0e1322" stroke="#ff5f6d" stroke-opacity="0.251"/>
+  <text class="h3" x="448" y="246" font-size="13">Phishing Detector</text>
+  <rect x="694" y="232" width="112" height="17" rx="4" fill="#ff5f6d" fill-opacity="0.122"/>
+  <text class="red" x="750" y="245" font-size="9.5" text-anchor="middle">Transformers</text>
+  <text class="sm" x="448" y="272">1 · WordPiece tokenizer</text>
+  <text class="xs" x="462" y="288">30,522 vocab · head truncation</text>
+  <text class="sm" x="448" y="310">2 · BERT encoder (12 layers)</text>
+  <text class="xs" x="462" y="326">max_length 512 · torch.no_grad()</text>
+  <text class="sm" x="448" y="348">3 · Classification head → softmax</text>
+  <rect x="448" y="360" width="340" height="30" rx="7" fill="#ff5f6d" fill-opacity="0.078" stroke="#ff5f6d" stroke-opacity="0.302"/>
+  <text class="red" x="462" y="380" font-size="13" font-weight="700">PHISHING  /  LEGITIMATE</text>
+  <text class="xs" x="776" y="380" text-anchor="end">0 / 1</text>
+  <text class="xs" x="448" y="410">Answers: is this trying to deceive?</text>
+  <text class="xs mono" x="448" y="426">backend/src/models/phishing_detector.py</text>
+
+  <path class="arrow" d="M222 440 V478"/>
+  <path class="arrow" d="M622 440 V478"/>
+
+  <!-- risk engine -->
+  <rect x="22" y="484" width="800" height="126" rx="10" fill="#141a2b" stroke="#f5a524" stroke-opacity="0.400"/>
+  <text class="h3" x="38" y="508" font-size="13">Risk Engine</text>
+  <rect x="150" y="494" width="180" height="17" rx="4" fill="#f5a524" fill-opacity="0.122"/>
+  <text class="amber" x="240" y="507" font-size="9.5" text-anchor="middle">RULE-BASED — NOT ML</text>
+  <text class="sm" x="38" y="530">Deterministic lookup over the two boolean verdicts. No probability, no training.</text>
+
+  <rect x="38" y="542" width="184" height="52" rx="7" fill="#2fd18c" fill-opacity="0.078" stroke="#2fd18c" stroke-opacity="0.251"/>
+  <text class="xs" x="50" y="560">HAM + LEGITIMATE</text>
+  <text class="green" x="50" y="582" font-size="15" font-weight="700">LOW</text>
+  <rect x="234" y="542" width="184" height="52" rx="7" fill="#f5a524" fill-opacity="0.102" stroke="#f5a524" stroke-opacity="0.400"/>
+  <text class="xs" x="246" y="560">SPAM + LEGITIMATE</text>
+  <text class="amber" x="246" y="582" font-size="15" font-weight="700">MEDIUM</text>
+  <rect x="430" y="542" width="184" height="52" rx="7" fill="#ff5f6d" fill-opacity="0.078" stroke="#ff5f6d" stroke-opacity="0.302"/>
+  <text class="xs" x="442" y="560">HAM + PHISHING</text>
+  <text class="red" x="442" y="582" font-size="15" font-weight="700">HIGH</text>
+  <rect x="626" y="542" width="184" height="52" rx="7" fill="#ff5f6d" fill-opacity="0.078" stroke="#ff5f6d" stroke-opacity="0.302"/>
+  <text class="xs" x="638" y="560">SPAM + PHISHING</text>
+  <text class="red" x="638" y="582" font-size="15" font-weight="700">HIGH</text>
+
+  <path class="arrow" d="M422 616 V652"/>
+
+  <!-- storage -->
+  <rect class="card2" x="22" y="658" width="390" height="66"/>
+  <text class="h3" x="38" y="682" font-size="12.5">Message Store</text>
+  <text class="xs mono" x="38" y="700">data/quarantine/quarantine.csv</text>
+  <text class="xs mono" x="38" y="715">data/inbox/inbox.csv</text>
+
+  <rect class="card2" x="432" y="658" width="390" height="66"/>
+  <text class="h3" x="448" y="682" font-size="12.5">Combined JSON response</text>
+  <text class="xs mono" x="448" y="700">spam_detection · phishing_detection</text>
+  <text class="xs mono" x="448" y="715">security_assessment · legacy fields</text>
+</g>
+
+<!-- ============================== FOOTER ============================== -->
+<line class="divider" x1="38" y1="1152" x2="1662" y2="1152"/>
+<text class="xs" x="38" y="1172">Testing: pytest (backend) · offline render checks (frontend)   |   Tooling: Git · Vite · Uvicorn · joblib · NumPy · Matplotlib</text>
+<text class="xs" x="1662" y="1172" text-anchor="end">Metrics from reports/phishing_classification_report.txt — held-out test set, not production traffic</text>
+</svg>

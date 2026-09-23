@@ -1,0 +1,71 @@
+==========================================================================
+PHISHING BERT - TRAINING SUMMARY (REPRODUCIBILITY RECORD)
+==========================================================================
+Generated : 2026-09-20T16:35:45
+
+ENVIRONMENT
+  Python       : 3.10.11
+  PyTorch      : 2.14.0+cpu
+  Transformers : 5.17.0
+  scikit-learn : 1.7.2
+  NumPy        : 2.2.6
+  pandas       : 2.3.3
+  Platform     : Windows-10-10.0.26200-SP0
+  Device       : cpu {'processor': 'AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD', 'cpu_count': 16}
+
+TRAINING PARAMETERS
+  MODEL_NAME              : bert-base-uncased
+  MAX_LENGTH              : 512
+  BATCH_SIZE              : 8
+  GRAD_ACCUM_STEPS        : 4
+  LEARNING_RATE           : 2e-05
+  NUM_EPOCHS              : 1
+  WEIGHT_DECAY            : 0.01
+  WARMUP_RATIO            : 0.1
+  MAX_GRAD_NORM           : 1.0
+  RANDOM_SEED             : 42
+  TRAIN_RATIO             : 0.8
+  VAL_RATIO               : 0.1
+  TEST_RATIO              : 0.1
+  EARLY_STOPPING_PATIENCE : 2
+  METRIC_FOR_BEST         : f1
+  EVAL_STEPS              : 500
+  SAVE_TOTAL_LIMIT        : 2
+  MAX_MISCLASSIFIED_SAVED : 200
+  MISCLASSIFIED_TEXT_CHARS: 1000
+  FP16                    : True
+  DATALOADER_WORKERS      : 2
+  NEAR_DUP_PREFIX         : 200
+  USE_SIGNATURE_DEDUP     : True
+
+DATASET
+  Source              : data/processed/phishing_cleaned.csv
+  Records before audit: 69,974
+  Duplicates removed  : 4,449 (exact 0, prefix 0, signature 4,449)
+  Records used        : 65,525
+  Training            : 52,420
+  Validation          : 6,552
+  Test                : 6,553
+  Leakage check       : PASS (no overlap on any of 3 duplicate layers)
+
+TOKENISATION
+  Tokenizer      : bert-base-uncased WordPiece
+  Max length     : 512
+  Truncation     : head
+  Over limit     : 20.8% of sampled emails
+
+RESULTS
+  Training time       : not recorded (reports regenerated with --finalize)
+  Best val f1         : 0.9926205055738735
+  Test accuracy       : 0.9919
+  Test phishing recall: 0.9875
+  Test phishing prec. : 0.9959
+  Test phishing F1    : 0.9917
+  Test ROC AUC        : 0.9997
+
+REPRODUCING THIS RUN
+  python -m src.models.train_phishing_bert
+  Seed 42 is applied to random, numpy and torch. Split files are
+  written to data/processed/ and are deterministic for a given seed.
+  Exact GPU reproducibility also depends on cuDNN kernel selection.
+==========================================================================

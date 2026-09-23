@@ -2,12 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import Header from './components/Header.jsx'
 import TabNav from './components/TabNav.jsx'
-import EmailForm from './components/EmailForm.jsx'
-import ExampleMessages from './components/ExampleMessages.jsx'
-import ResultCard from './components/ResultCard.jsx'
-import ResultPlaceholder from './components/ResultPlaceholder.jsx'
-import ErrorBanner from './components/ErrorBanner.jsx'
-import HowItWorks from './components/HowItWorks.jsx'
+import Dashboard from './pages/Dashboard.jsx'
+import SystemStatus from './components/SystemStatus.jsx'
+import DetectionEngines from './components/DetectionEngines.jsx'
 import Overview from './components/Overview.jsx'
 import MessageList from './components/MessageList.jsx'
 
@@ -23,27 +20,31 @@ import {
 const EMPTY_BOXES = { quarantine: [], inbox: [] }
 
 export default function App() {
-  const [tab, setTab] = useState('classifier')
+  const [tab, setTab] = useState('analyzer')
 
-  const [text, setText] = useState('')
+  // -- analyzer state --
+  const [subject, setSubject] = useState('')
+  const [body, setBody] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [analysisError, setAnalysisError] = useState('')
 
-  const [status, setStatus] = useState('checking')
+  // -- backend state --
+  const [connection, setConnection] = useState('checking')
   const [health, setHealth] = useState(null)
   const [metrics, setMetrics] = useState(null)
-  const [activeExample, setActiveExample] = useState(null)
 
+  // -- mailbox state --
   const [stats, setStats] = useState(null)
   const [boxes, setBoxes] = useState(EMPTY_BOXES)
   const [boxLoading, setBoxLoading] = useState(false)
   const [movingId, setMovingId] = useState(null)
+  const [notice, setNotice] = useState('')
 
   const abortRef = useRef(null)
+  const lastSubmitted = useRef('')
 
-  // ---------------------------------------------------------------- data --
+  // ----------------------------------------------------------- backend --
 
   const loadMailboxes = useCallback(async () => {
     setBoxLoading(true)
@@ -55,32 +56,29 @@ export default function App() {
       ])
       setStats(statsPayload)
       setBoxes({
-        quarantine: quarantine.messages ?? [],
-        inbox: inbox.messages ?? [],
+        quarantine: quarantine?.messages ?? [],
+        inbox: inbox?.messages ?? [],
       })
-      setStatus('online')
-    } catch (err) {
-      setError(err.message)
-      if (err.message.includes('reach the prediction service')) setStatus('offline')
+    } catch {
+      // The mailbox is secondary; a failure here must not break the analyzer.
     } finally {
       setBoxLoading(false)
     }
   }, [])
 
   const probeBackend = useCallback(async () => {
-    setStatus('checking')
+    setConnection('checking')
     try {
-      const [healthPayload, metricsPayload] = await Promise.all([
-        checkHealth(),
-        fetchMetrics().catch(() => null),
-      ])
+      const healthPayload = await checkHealth()
       setHealth(healthPayload)
-      if (metricsPayload) setMetrics(metricsPayload)
-      setStatus('online')
-      await loadMailboxes()
+      setConnection('online')
+
+      fetchMetrics().then(setMetrics).catch(() => {})
+      loadMailboxes()
       return true
     } catch {
-      setStatus('offline')
+      setHealth(null)
+      setConnection('offline')
       return false
     }
   }, [loadMailboxes])
@@ -90,60 +88,70 @@ export default function App() {
     return () => abortRef.current?.abort()
   }, [probeBackend])
 
-  // ------------------------------------------------------------- actions --
+  // ------------------------------------------------------------ actions --
 
-  async function handleAnalyse() {
-    const trimmed = text.trim()
+  const handleAnalyze = useCallback(
+    async (text) => {
+      const trimmed = (text ?? '').trim()
 
-    if (!trimmed) {
-      setError('Please paste or type a message before analysing.')
+      if (!trimmed) {
+        setAnalysisError('Enter an email before running the analysis.')
+        setResult(null)
+        return
+      }
+
+      // Guard against duplicate submissions while one is in flight.
+      if (loading) return
+
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
+      lastSubmitted.current = trimmed
+
+      setLoading(true)
+      setAnalysisError('')
       setResult(null)
-      return
+
+      try {
+        const payload = await predictEmail(trimmed, controller.signal)
+        setResult(payload)
+        setConnection('online')
+        loadMailboxes()
+      } catch (error) {
+        if (error.name === 'AbortError') return
+        setResult(null)
+        setAnalysisError(error.message)
+        // Only a transport failure means the backend is down; a 4xx does not.
+        if (!error.status) {
+          setConnection('offline')
+          setHealth(null)
+        }
+      } finally {
+        if (abortRef.current === controller) setLoading(false)
+      }
+    },
+    [loading, loadMailboxes]
+  )
+
+  const handleRetry = useCallback(async () => {
+    const reachable = await probeBackend()
+    if (reachable && lastSubmitted.current) {
+      handleAnalyze(lastSubmitted.current)
     }
-
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-
-    setLoading(true)
-    setError('')
-    setNotice('')
-
-    try {
-      const payload = await predictEmail(trimmed, controller.signal)
-      setResult(payload)
-      setStatus('online')
-      loadMailboxes()
-    } catch (err) {
-      if (err.name === 'AbortError') return
-      setResult(null)
-      setError(err.message)
-      if (err.message.includes('reach the prediction service')) setStatus('offline')
-    } finally {
-      if (abortRef.current === controller) setLoading(false)
-    }
-  }
+  }, [probeBackend, handleAnalyze])
 
   function handleClear() {
     abortRef.current?.abort()
-    setText('')
+    setSubject('')
+    setBody('')
     setResult(null)
-    setError('')
-    setNotice('')
-    setActiveExample(null)
+    setAnalysisError('')
     setLoading(false)
-  }
-
-  function handleSelectExample(example) {
-    setText(example.text)
-    setActiveExample(example.id)
-    setResult(null)
-    setError('')
+    lastSubmitted.current = ''
   }
 
   async function handleMove(id, target) {
     setMovingId(id)
-    setError('')
     try {
       await moveMessage(id, target)
       await loadMailboxes()
@@ -152,34 +160,30 @@ export default function App() {
           ? 'Message restored to the Inbox and relabelled as ham.'
           : 'Message moved to Quarantine and relabelled as spam.'
       )
-    } catch (err) {
-      setError(err.message)
+    } catch (error) {
+      setNotice(error.message)
     } finally {
       setMovingId(null)
     }
   }
 
-  // -------------------------------------------------------------- render --
+  // ------------------------------------------------------------- render --
 
   const counts = {
     quarantine: boxes.quarantine.length,
     inbox: boxes.inbox.length,
   }
 
+  const enginesDown = connection === 'offline' || health?.status === 'unhealthy'
+
   return (
     <div className="app">
       <div className="app__glow" aria-hidden="true" />
 
       <div className="shell">
-        <Header status={status} health={health} />
+        <Header connection={connection} health={health} />
 
         <TabNav active={tab} onChange={setTab} counts={counts} />
-
-        <ErrorBanner
-          message={error}
-          onDismiss={() => setError('')}
-          onRetry={status === 'offline' ? probeBackend : undefined}
-        />
 
         {notice ? (
           <div className="notice" role="status">
@@ -200,37 +204,33 @@ export default function App() {
           aria-labelledby={`tab-${tab}`}
           className="panel-area"
         >
-          {tab === 'classifier' ? (
+          {tab === 'analyzer' ? (
+            <Dashboard
+              subject={subject}
+              body={body}
+              onSubjectChange={setSubject}
+              onBodyChange={setBody}
+              onAnalyze={handleAnalyze}
+              onClear={handleClear}
+              loading={loading}
+              result={result}
+              error={analysisError}
+              onRetry={handleRetry}
+              health={health}
+              connection={connection}
+              metrics={metrics}
+              enginesDown={enginesDown}
+            />
+          ) : null}
+
+          {tab === 'status' ? (
             <div className="stack">
-              <div className="layout">
-                <div className="layout__col">
-                  <EmailForm
-                    value={text}
-                    onChange={(next) => {
-                      setText(next)
-                      setActiveExample(null)
-                    }}
-                    onSubmit={handleAnalyse}
-                    onClear={handleClear}
-                    loading={loading}
-                  />
-                  <ExampleMessages
-                    onSelect={handleSelectExample}
-                    disabled={loading}
-                    activeId={activeExample}
-                  />
-                </div>
-
-                <div className="layout__col">
-                  {result && !loading ? (
-                    <ResultCard result={result} />
-                  ) : (
-                    <ResultPlaceholder loading={loading} />
-                  )}
-                </div>
-              </div>
-
-              <HowItWorks metrics={metrics} />
+              <SystemStatus
+                health={health}
+                connection={connection}
+                onRetry={probeBackend}
+              />
+              <DetectionEngines metrics={metrics} />
             </div>
           ) : null}
 
@@ -238,7 +238,7 @@ export default function App() {
             <Overview
               stats={stats}
               loading={boxLoading && !stats}
-              onGoToClassifier={() => setTab('classifier')}
+              onGoToClassifier={() => setTab('analyzer')}
             />
           ) : null}
 
@@ -266,8 +266,8 @@ export default function App() {
         </main>
 
         <footer className="footer">
-          <span>Email Spam Detection Agent</span>
-          <span>CountVectorizer + Multinomial Naive Bayes · FastAPI · React</span>
+          <span>AI Email Threat Detection</span>
+          <span>Naive Bayes + BERT · FastAPI · React</span>
         </footer>
       </div>
     </div>

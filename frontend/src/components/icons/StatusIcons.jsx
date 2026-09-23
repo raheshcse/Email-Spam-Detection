@@ -37,6 +37,56 @@ export function TrashIcon({ size = 16 }) {
   )
 }
 
+export function MailIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} {...base}>
+      <rect x="3" y="5.5" width="18" height="13" rx="2" />
+      <path d="m3.6 6.6 8.4 6 8.4-6" />
+    </svg>
+  )
+}
+
+export function ServerIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} {...base}>
+      <rect x="3" y="4" width="18" height="6.5" rx="1.6" />
+      <rect x="3" y="13.5" width="18" height="6.5" rx="1.6" />
+      <path d="M6.8 7.2h.01" />
+      <path d="M6.8 16.8h.01" />
+    </svg>
+  )
+}
+
+export function CpuIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} {...base}>
+      <rect x="6.5" y="6.5" width="11" height="11" rx="2" />
+      <rect x="10" y="10" width="4" height="4" rx="1" />
+      <path d="M10 3.2v3.3M14 3.2v3.3M10 17.5v3.3M14 17.5v3.3" />
+      <path d="M3.2 10h3.3M3.2 14h3.3M17.5 10h3.3M17.5 14h3.3" />
+    </svg>
+  )
+}
+
+export function ThreatIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} {...base}>
+      <path d="M12 2.8 4.8 5.6v5.3c0 4.5 3 8.7 7.2 10.1 4.2-1.4 7.2-5.6 7.2-10.1V5.6L12 2.8Z" />
+      <path d="m9.6 9.6 4.8 4.8M14.4 9.6l-4.8 4.8" />
+    </svg>
+  )
+}
+
+export function InfoIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} {...base}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.2" />
+      <path d="M12 7.9h.01" />
+    </svg>
+  )
+}
+
 export function ChartIcon({ size = 16 }) {
   return (
     <svg width={size} height={size} {...base}>

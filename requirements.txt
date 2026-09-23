@@ -10,3 +10,14 @@ uvicorn
 matplotlib
 seaborn
 requests
+
+# --- pydantic: request/response validation for the API ---
+pydantic
+
+# --- phishing BERT detector ---
+torch
+transformers
+
+# --- backend tests ---
+pytest
+httpx

@@ -1,0 +1,58 @@
+==========================================================================
+PHISHING DETECTION - TEST SET CLASSIFICATION REPORT
+==========================================================================
+Generated : 2026-09-20T16:35:45
+Model     : bert-base-uncased fine-tuned
+Test size : 6,553 emails (never seen during training)
+
+              precision    recall  f1-score   support
+
+  LEGITIMATE     0.9882    0.9961    0.9921      3362
+    PHISHING     0.9959    0.9875    0.9917      3191
+
+    accuracy                         0.9919      6553
+   macro avg     0.9920    0.9918    0.9919      6553
+weighted avg     0.9919    0.9919    0.9919      6553
+
+
+--------------------------------------------------------------------------
+CONFUSION MATRIX
+--------------------------------------------------------------------------
+                        Predicted LEGITIMATE   Predicted PHISHING
+  Actual LEGITIMATE                 3,349                   13
+  Actual PHISHING                      40                3,151
+
+--------------------------------------------------------------------------
+SECURITY-RELEVANT READING
+--------------------------------------------------------------------------
+Phishing recall    : 0.9875
+Phishing precision : 0.9959
+Phishing F1        : 0.9917
+Phishing F2        : 0.9891   (recall weighted 2x)
+ROC AUC            : 0.9997
+
+False negatives    : 40 (1.25% of phishing)
+  Phishing delivered to the inbox. The expensive error: one click can
+  mean credential theft or malware execution.
+
+False positives    : 13 (0.39% of legitimate)
+  Legitimate mail quarantined. Cheap per incident, but at scale it
+  trains users to ignore the filter, which costs recall indirectly.
+
+WHY RECALL IS THE HEADLINE NUMBER
+  The two errors are not symmetric. A quarantined newsletter is
+  recoverable; a delivered credential-harvesting page may not be. That
+  is why F2 is reported next to F1, and why the threshold can be moved
+  below 0.5 to buy recall at the cost of precision if the deployment
+  can absorb the extra false positives.
+
+LIMITS OF THIS EVALUATION
+  * The test set is ~50/50 phishing to legitimate. Real inbound mail is
+    nothing like that, so precision here is optimistic: at a realistic
+    base rate the same model produces far more false positives per true
+    catch.
+  * The source corpora are largely 2002-2008. Scores do not transfer to
+    current attacks without fresh data.
+  * No adversarial testing was done. Attackers adapt; this was measured
+    on a static dataset.
+==========================================================================

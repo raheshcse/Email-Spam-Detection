@@ -1,13 +1,79 @@
-﻿.venv/
+# ---------------------------------------------------------------- Python --
+.venv/
+venv/
+env/
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
+# ------------------------------------------------------------------- Node --
+node_modules/
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-error.log*
 
+# --------------------------------------------------------------- Secrets --
 .env
 .env.*
+!.env.example
+*.pem
+*.key
 
+# ----------------------------------------------------------------- Logs ---
 *.log
+logs/
 
+# ------------------------------------------------------- Training output --
+# Checkpoints are large and fully reproducible from the training script.
+# The FINAL model in models/phishing_bert/ is intentionally NOT ignored.
+models/phishing_bert_checkpoints/
+runs/
+wandb/
+
+# --------------------------------------------------- Analysed email data --
+# Mailbox CSVs accumulate the content of every email analysed locally, which
+# is user data rather than source. The directories are kept via .gitkeep so a
+# fresh clone still has somewhere to write.
+data/inbox/*.csv
+data/quarantine/*.csv
+!data/**/.gitkeep
+
+# Large DERIVED datasets only - each is reproducible from a script, and they
+# total well over 300 MB. Source datasets (data/raw/email_spam.csv) stay
+# tracked because they cannot be regenerated.
+#
+# Rebuild with:
+#   python -m src.data.build_phishing_dataset   -> phishing_combined.csv
+#   python -m src.data.preprocess_phishing      -> phishing_cleaned.csv
+#   python -m src.models.train_phishing_bert --split-only  -> train/val/test
+data/raw/phishing_combined.csv
+data/processed/phishing_cleaned.csv
+data/processed/train.csv
+data/processed/validation.csv
+data/processed/test.csv
+
+# --------------------------------------------------------------- Editors --
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ------------------------------------------------------------ Scratch -----
+tmp/
+temp/
+*.bak
+*.tmp
+
+# Trained BERT model
+models/phishing_bert/
+models/phishing_bert_checkpoints/
+
+# Trained BERT model
+models/phishing_bert/
+models/phishing_bert_checkpoints/

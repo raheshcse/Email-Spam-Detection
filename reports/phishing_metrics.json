@@ -1,0 +1,96 @@
+{
+  "test_metrics": {
+    "accuracy": 0.9919121013276362,
+    "phishing_precision": 0.9958912768647282,
+    "phishing_recall": 0.9874647445941711,
+    "phishing_f1": 0.9916601101494886,
+    "phishing_f2": 0.9891386238071321,
+    "roc_auc": 0.9996709588668756,
+    "confusion_matrix": {
+      "true_negative_legit_as_legit": 3349,
+      "false_positive_legit_as_phish": 13,
+      "false_negative_phish_as_legit": 40,
+      "true_positive_phish_as_phish": 3151
+    },
+    "false_negative_rate": 0.012535255405828893,
+    "false_positive_rate": 0.003866745984533016,
+    "test_size": 6553
+  },
+  "validation_metrics": {
+    "epoch": 1.0,
+    "eval_accuracy": 0.9928266178266179,
+    "eval_f1": 0.9926205055738735,
+    "eval_f2": 0.9914063480115418,
+    "eval_loss": 0.03302917629480362,
+    "eval_precision": 0.9946507237256136,
+    "eval_recall": 0.9905985584456283,
+    "eval_runtime": 1376.5524,
+    "eval_samples_per_second": 4.76,
+    "eval_steps_per_second": 0.298,
+    "step": 1639
+  },
+  "error_analysis": {
+    "total_misclassified": 53,
+    "false_negatives": 40,
+    "false_positives": 13,
+    "saved_to_csv": 53
+  },
+  "config": {
+    "MODEL_NAME": "bert-base-uncased",
+    "MAX_LENGTH": 512,
+    "BATCH_SIZE": 8,
+    "GRAD_ACCUM_STEPS": 4,
+    "LEARNING_RATE": 2e-05,
+    "NUM_EPOCHS": 1,
+    "WEIGHT_DECAY": 0.01,
+    "WARMUP_RATIO": 0.1,
+    "MAX_GRAD_NORM": 1.0,
+    "RANDOM_SEED": 42,
+    "TRAIN_RATIO": 0.8,
+    "VAL_RATIO": 0.1,
+    "TEST_RATIO": 0.1,
+    "EARLY_STOPPING_PATIENCE": 2,
+    "METRIC_FOR_BEST": "f1",
+    "EVAL_STEPS": 500,
+    "SAVE_TOTAL_LIMIT": 2,
+    "MAX_MISCLASSIFIED_SAVED": 200,
+    "MISCLASSIFIED_TEXT_CHARS": 1000,
+    "FP16": true,
+    "DATALOADER_WORKERS": 2,
+    "NEAR_DUP_PREFIX": 200,
+    "USE_SIGNATURE_DEDUP": true
+  },
+  "dataset_sizes": {
+    "train": {
+      "total": 52420,
+      "legitimate": 26890,
+      "phishing": 25530
+    },
+    "validation": {
+      "total": 6552,
+      "legitimate": 3361,
+      "phishing": 3191
+    },
+    "test": {
+      "total": 6553,
+      "legitimate": 3362,
+      "phishing": 3191
+    }
+  },
+  "device": {
+    "type": "cpu",
+    "processor": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD",
+    "cpu_count": 16
+  },
+  "versions": {
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "torch": "2.14.0+cpu",
+    "transformers": "5.17.0",
+    "scikit-learn": "1.7.2",
+    "numpy": "2.2.6",
+    "pandas": "2.3.3"
+  },
+  "training_duration_minutes": 0.0,
+  "generated_at": "2026-09-20T16:35:45"
+}

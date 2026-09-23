@@ -1,46 +1,57 @@
+/**
+ * Product header: identity on the left, live API status on the right.
+ *
+ * The status pill reflects GET /health only. It never claims "operational"
+ * unless the backend actually said both models are loaded.
+ */
 import ShieldIcon from './icons/ShieldIcon.jsx'
 
-const STATUS_COPY = {
-  checking: { text: 'Connecting to model…', tone: 'idle' },
-  online: { text: 'Model online', tone: 'online' },
-  offline: { text: 'Backend offline', tone: 'offline' },
+function statusFor(connection, health) {
+  if (connection === 'checking') {
+    return { tone: 'idle', text: 'Connecting…' }
+  }
+  if (connection === 'offline') {
+    return { tone: 'offline', text: 'API Unreachable' }
+  }
+
+  if (health?.status === 'healthy') {
+    return { tone: 'online', text: 'System Operational' }
+  }
+  if (health?.status === 'degraded') {
+    return { tone: 'warn', text: 'Degraded' }
+  }
+  if (health?.status === 'unhealthy') {
+    return { tone: 'offline', text: 'Engines Offline' }
+  }
+
+  return { tone: 'idle', text: 'Status Unknown' }
 }
 
-export default function Header({ status, health }) {
-  const badge = STATUS_COPY[status] ?? STATUS_COPY.checking
-  const warning = health?.cleaner?.warning
+export default function Header({ connection, health }) {
+  const status = statusFor(connection, health)
 
   return (
-    <header className="header">
-      <div className="header__brand">
-        <span className="header__logo" aria-hidden="true">
-          <ShieldIcon />
+    <header className="topbar">
+      <div className="topbar__brand">
+        <span className="topbar__logo" aria-hidden="true">
+          <ShieldIcon size={22} />
         </span>
-        <div>
-          <h1 className="header__title">Email Spam Detection Agent</h1>
-          <p className="header__subtitle">
-            Naive Bayes classifier for inbound email and SMS triage
-          </p>
+        <div className="topbar__text">
+          <h1 className="topbar__title">AI Email Threat Detection</h1>
+          <p className="topbar__subtitle">AI-powered email security analysis</p>
         </div>
       </div>
 
-      <div className="header__meta">
-        <span className={`status status--${badge.tone}`}>
+      <div className="topbar__status">
+        <span
+          className={`status status--${status.tone}`}
+          role="status"
+          aria-live="polite"
+        >
           <span className="status__dot" aria-hidden="true" />
-          {badge.text}
+          {status.text}
         </span>
-        {health?.vocabulary_size ? (
-          <span className="header__vocab">
-            {health.vocabulary_size.toLocaleString()} term vocabulary
-          </span>
-        ) : null}
       </div>
-
-      {warning ? (
-        <p className="header__warning" role="status">
-          {warning}
-        </p>
-      ) : null}
     </header>
   )
 }
