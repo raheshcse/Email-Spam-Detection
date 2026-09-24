@@ -490,72 +490,63 @@ Errors return \`{"detail": "..."}\`: \`422\` empty or invalid input, \`413\` ove
 
 ```text
 AI Email Threat Detection/
-|
-|-- backend/
-|   |-- src/
-|   |   |-- api/
-|   |   |   |-- app.py                  FastAPI application and routes
-|   |   |   |-- schemas.py              Pydantic request/response models
-|   |   |
-|   |   |-- models/
-|   |   |   |-- spam_detector.py        Naive Bayes wrapper
-|   |   |   |-- phishing_detector.py    BERT wrapper
-|   |   |
-|   |   |-- services/
-|   |   |   |-- email_threat_service.py Detector orchestration and risk rules
-|   |   |
-|   |   |-- storage/
-|   |   |   |-- message_store.py        CSV mailbox storage
-|   |   |
-|   |   |-- main.py                     Project entry point
-|   |   |-- paths.py                    Project path resolution
-|   |
-|   |-- tests/
-|   |   |-- conftest.py
-|   |   |-- test_api.py
-|   |   |-- test_message_store.py
-|   |
-|   |-- requirements.txt                Backend dependencies
-|
-|-- frontend/
-|   |-- src/
-|   |   |-- components/                 Dashboard components
-|   |   |-- pages/
-|   |   |-- api.js                      Single HTTP layer
-|   |   |-- App.jsx
-|   |   |-- styles.css
-|   |   |-- smoke-test.jsx
-|   |-- package.json
-|   |-- vite.config.js
-|
-|-- data/
-|   |-- raw/                            Source datasets
-|   |-- processed/                      Cleaned data and splits
-|   |-- inbox/                          Messages allowed through
-|   |-- quarantine/                     Messages requiring review
-|
-|-- models/
-|   |-- spam_model.pkl                  Trained spam classifier
-|   |-- count_vectorizer.pkl            Spam feature vectorizer
-|   `-- phishing_bert/                  Fine-tuned BERT model (local / excluded from Git)
-|
-|-- reports/                            Evaluation artifacts
-|
-|-- scripts/                            Dataset and maintenance utilities
-|
-|-- requirements.txt                    ML pipeline dependencies
-|
-`-- README.md
+├── backend/
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── app.py                  FastAPI application and routes
+│   │   │   └── schemas.py              Pydantic request/response models
+│   │   ├── models/
+│   │   │   ├── spam_detector.py        Naive Bayes wrapper
+│   │   │   └── phishing_detector.py    BERT wrapper
+│   │   ├── services/
+│   │   │   └── email_threat_service.py Detector orchestration and risk rules
+│   │   ├── storage/
+│   │   │   └── message_store.py        CSV mailbox storage
+│   │   ├── main.py                     Project entry point
+│   │   └── paths.py                    Project path resolution
+│   ├── tests/
+│   │   ├── conftest.py
+│   │   ├── test_api.py
+│   │   └── test_message_store.py
+│   └── requirements.txt                Backend dependencies
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/                 Dashboard components
+│   │   ├── pages/
+│   │   ├── api.js                      Single HTTP layer
+│   │   ├── App.jsx
+│   │   ├── styles.css
+│   │   └── smoke-test.jsx
+│   ├── package.json
+│   └── vite.config.js
+│
+├── data/
+│   ├── raw/                            Source datasets
+│   ├── processed/                      Cleaned data and splits
+│   ├── inbox/                          Messages allowed through
+│   └── quarantine/                     Messages requiring review
+│
+├── models/
+│   ├── spam_model.pkl                  Trained spam classifier
+│   ├── count_vectorizer.pkl            Spam feature vectorizer
+│   └── phishing_bert/                  Fine-tuned BERT model
+│
+├── reports/                            Evaluation artifacts
+├── scripts/                            Dataset and maintenance utilities
+├── requirements.txt                    ML pipeline dependencies
+└── README.md
 ```
 
 | Directory | Contents |
 |---|---|
 | `backend/` | All Python application code, tests and backend dependencies |
-| `frontend/` | React + Vite security dashboard |
+| `frontend/` | React + Vite dashboard. No Python. |
 | `data/` | Datasets and runtime mailbox CSVs |
-| `models/` | Trained model artefacts; the fine-tuned BERT weights are excluded from Git because they exceed GitHub's standard file-size limit |
-| `reports/` | Evaluation outputs referenced by this README |
-| `scripts/` | Dataset, preprocessing and maintenance utilities |
+| `models/` | Trained artefacts, loaded at API startup |
+| `reports/` | Evaluation output — the source of every metric in this README |
+
+> **Note:** The fine-tuned BERT weights are excluded from Git because `model.safetensors` exceeds GitHub's standard 100 MB file-size limit. The model is generated locally through the training pipeline described in this README.
 
 ## 12. Installation
 
